@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0c1f3d;
+  --color-ink2: #38506f;
+  --color-brand: #0c2d48;
+  --color-brand-d: #081f33;
+  --color-coral: #ff6b57;
+  --color-mist: #eaf0f8;
+  --color-paper: #f7f9fc;
+  --color-line: #dbe4f0;
+  --color-ok: #16a870;
+  --color-warn: #c77d0a;
+  --color-bad: #d6453d;
+  --font-display: "Bricolage Grotesque", "Figtree", system-ui, sans-serif;
+  --font-sans: "Figtree", system-ui, sans-serif;
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { background: var(--color-paper); color: var(--color-ink); font-family: var(--font-sans); -webkit-font-smoothing: antialiased; }
+  h1, h2, h3 { font-family: var(--font-display); letter-spacing: -0.02em; line-height: 1.1; }
+  :focus-visible { outline: 3px solid var(--color-brand); outline-offset: 2px; border-radius: 8px; }
+  button { cursor: pointer; }
+  button:disabled { cursor: not-allowed; opacity: .55; }
+}
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* The one memorable motion: the claim tracker draws its progress line when a claim opens. */
+@keyframes draw-line { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.tracker-line { transform-origin: top; animation: draw-line .9s cubic-bezier(.2,.8,.2,1) both; }
