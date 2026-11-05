@@ -308,7 +308,7 @@ export default function Landing() {
           <div><h4>Company</h4><a href="#">About</a><a href="#">Careers</a><a href="#reviews">Reviews</a><a href="#">Press</a></div>
           <div><h4>Help</h4><a href="#faq">FAQ</a><a href="#claims">Make a claim</a><a href="#">Contact</a><a href="#">Privacy</a></div>
         </div>
-        <p className="fine">© {new Date().getFullYear()} {BRAND}. Demo site for illustration only. Quotes shown are estimates and not an offer of cover.</p>
+        <p className="fine">© {new Date().getFullYear()} {BRAND}. Quotes shown are estimates and not an offer of cover.</p>
       </div></footer>
     </div>
   );
