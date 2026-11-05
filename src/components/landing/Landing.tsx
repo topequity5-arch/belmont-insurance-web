@@ -1,20 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BRAND } from "@/lib/brand";
+import { api, useQuery } from "@/lib/api";
+import { getAccessToken } from "@/lib/session";
+import type { Me, Plan } from "@/lib/types";
+import { FALLBACK_PLANS, KINDS, calcConfig, fallbackBase, fmt, num, priceAt, type Kind, type PlanCard } from "@/lib/quote";
 import "./landing.css";
 
-const fmt = (n: number) => n.toLocaleString("en-US");
-
-/* ---------- quote widget data (as supplied) ---------- */
-type Kind = "auto" | "home" | "health" | "life";
-const C: Record<Kind, { min: number; max: number; step: number; def: number; base: number; rate: number; l: string; n: string }> = {
-  auto: { min: 10000, max: 100000, step: 5000, def: 50000, base: 18, rate: 0.0007, l: "Liability coverage", n: "Collision, theft and roadside" },
-  home: { min: 100000, max: 1000000, step: 25000, def: 400000, base: 12, rate: 0.00008, l: "Rebuild value", n: "Structure and belongings" },
-  health: { min: 50000, max: 500000, step: 10000, def: 200000, base: 40, rate: 0.0004, l: "Annual benefit limit", n: "Doctor, drugs and hospital" },
-  life: { min: 100000, max: 2000000, step: 50000, def: 500000, base: 8, rate: 0.00004, l: "Death benefit", n: "20-year term cover" },
-};
-const KINDS: Kind[] = ["auto", "home", "health", "life"];
 const TOASTS = [["Claim approved", "Auto · 2 hours ago", "🚗"], ["Policy activated", "Home · just now", "🏠"], ["Payout sent: $1,240", "Health · 18 min ago", "💸"], ["New quote saved", "Life · 5 min ago", "🛡️"]];
 const NAMES = ["Northwind Motors", "Atlas Realty", "Meridian Health", "Brightpath", "Kestrel Auto", "Lumen Homes", "Orbit Bank", "Solace Care"];
 
@@ -53,16 +46,39 @@ export default function Landing() {
     return () => window.removeEventListener("scroll", on);
   }, []);
 
+  /* data from the API: public catalog + currently signed-in user (when a session exists) */
+  const { data: plans, loading: plansLoading, error: plansError } = useQuery<Plan[]>("/catalog/plans");
+  const [me, setMe] = useState<Me | null>(null);
+  useEffect(() => {
+    let active = true;
+    getAccessToken().then((token) => {
+      if (!token) return;
+      api<Me>("/me").then((m) => { if (active) setMe(m); }).catch(() => { /* session expired */ });
+    });
+    return () => { active = false; };
+  }, []);
+
   /* quote widget */
   const [type, setType] = useState<Kind>("auto");
-  const [cov, setCov] = useState(C.auto.def);
+  const [cov, setCov] = useState(() => calcConfig("auto", null).def);
   const [fac, setFac] = useState(1);
   const [shown, setShown] = useState(0);
   const shownRef = useRef(0);
-  const c = C[type];
-  const p = ((cov - c.min) / (c.max - c.min)) * 100;
+  const c = useMemo(() => calcConfig(type, plans), [type, plans]);
+  const p = c.max > c.min ? ((cov - c.min) / (c.max - c.min)) * 100 : 100;
   const sc = Math.round(35 + p * 0.6);
-  const price = Math.round((c.base + cov * c.rate) * fac);
+  const base = c.pts.length ? priceAt(c.pts, cov) : fallbackBase(type, cov);
+  const price = Math.round(base * fac);
+  /* reset slider + deductible when the kind or the catalog data changes */
+  useEffect(() => {
+    setCov(c.def);
+    setFac(c.deds.reduce((best, d) => (Math.abs(d.factor - 1) < Math.abs(best.factor - 1) ? d : best)).factor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [type, plans]);
+  useEffect(() => {
+    setCov((v) => Math.min(c.max, Math.max(c.min, v)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [c.min, c.max]);
   useEffect(() => {
     const from = shownRef.current, t0 = performance.now();
     let raf = 0;
@@ -99,7 +115,7 @@ export default function Landing() {
     }), { threshold: 0.15 });
     root.current?.querySelectorAll(".rv").forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [plans]);
 
   /* claim tracker */
   const [steps, setSteps] = useState<string[]>(["", "", "", ""]);
@@ -123,9 +139,22 @@ export default function Landing() {
     return () => { io.disconnect(); timers.current.forEach(clearTimeout); };
   }, [runClaim]);
 
-  /* billing toggle */
+  /* billing toggle + plans section data */
   const [yearly, setYearly] = useState(false);
-  const amt = (v: number) => Math.round(v * (yearly ? 0.85 : 1));
+  const cards: PlanCard[] = useMemo(() => {
+    const ins = (plans ?? []).filter((pl) => pl.product.category !== "investment");
+    if (!ins.length) return FALLBACK_PLANS;
+    return ins.map((pl) => ({
+      id: pl.id, name: pl.name, tagline: pl.tagline, features: pl.features, highlighted: pl.highlighted,
+      monthly: num(pl.price_monthly_usd), yearly: num(pl.price_yearly_usd),
+    }));
+  }, [plans]);
+  const cardPrice = (c: PlanCard) => (yearly ? (c.yearly != null ? c.yearly / 12 : c.monthly) : (c.monthly ?? (c.yearly != null ? c.yearly / 12 : null)));
+  const savePct = useMemo(() => {
+    const pcts = (plans ?? []).filter((pl) => num(pl.price_monthly_usd) && num(pl.price_yearly_usd))
+      .map((pl) => Math.round((1 - num(pl.price_yearly_usd)! / (12 * num(pl.price_monthly_usd)!)) * 100));
+    return pcts.length ? Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length) : 15;
+  }, [plans]);
 
   const closeMenu = () => setMenu(false);
   const T = TOASTS[toast.i];
@@ -145,8 +174,10 @@ export default function Landing() {
           <a href="#" className="logo" aria-label={`${BRAND} home`}><img src="/logo.jpeg" alt="Logo" width="30" height="30" />{BRAND}</a>
           <div className={menu ? "links o" : "links"} id="links">
             <a href="#coverage" onClick={closeMenu}>Coverage</a><a href="#claims" onClick={closeMenu}>Claims</a><a href="#plans" onClick={closeMenu}>Plans</a><a href="#reviews" onClick={closeMenu}>Reviews</a><a href="#faq" onClick={closeMenu}>FAQ</a>
-            <Link href="/login" onClick={closeMenu}>Sign in</Link>
-            <a href="#quote" className="btn btn-p" style={{ padding: "10px 22px" }} onClick={closeMenu}>Get a quote</a>
+            {me
+              ? <Link href="/portal" onClick={closeMenu}>Hi, {me.full_name?.split(" ")[0] || me.email}</Link>
+              : <Link href="/login" onClick={closeMenu}>Sign in</Link>}
+            <a href="#quote" className="btn btn-p" style={{ padding: "10px 22px" }} onClick={closeMenu}>{me ? "My plans" : "Get a quote"}</a>
           </div>
           <button className="burger" id="burger" aria-label="Toggle menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -169,7 +200,7 @@ export default function Landing() {
             <div className="tabs" role="tablist" aria-label="Insurance type">
               <span className="th" style={{ transform: `translateX(${KINDS.indexOf(type) * 100}%)` }} />
               {KINDS.map((k) => (
-                <button key={k} role="tab" aria-selected={type === k} onClick={() => { setType(k); setCov(C[k].def); }}>{k[0].toUpperCase() + k.slice(1)}</button>
+                <button key={k} role="tab" aria-selected={type === k} onClick={() => setType(k)}>{k[0].toUpperCase() + k.slice(1)}</button>
               ))}
             </div>
             <div className="qm">
@@ -180,15 +211,15 @@ export default function Landing() {
               </div>
               <div>
                 <div className="price" aria-live="polite">$<span style={{ font: "inherit", color: "inherit" }}>{shown}</span><span>/mo</span></div>
-                <p>{c.n}</p>
+                <p>{c.note}</p>
               </div>
             </div>
-            <label className="sl" htmlFor="cov"><span>{c.l}</span><output>${fmt(cov)}</output></label>
+            <label className="sl" htmlFor="cov"><span>{c.label}</span><output>${fmt(cov)}</output></label>
             <input type="range" id="cov" min={c.min} max={c.max} step={c.step} value={cov} onChange={(e) => setCov(+e.target.value)} style={{ ["--p" as string]: p + "%" } as React.CSSProperties} />
             <div className="ded" role="group" aria-label="Deductible"><span>Deductible</span>
-              {[["$250", 1.12], ["$500", 1], ["$1,000", 0.88]].map(([l, f]) => <button key={l} aria-pressed={fac === f} onClick={() => setFac(f as number)}>{l}</button>)}
+              {c.deds.map((d) => <button key={d.label} aria-pressed={fac === d.factor} onClick={() => setFac(d.factor)}>{d.label}</button>)}
             </div>
-            <a href="#plans" className="btn btn-p">Continue with this quote</a>
+            <a href={me ? "/portal/plans" : "#plans"} className="btn btn-p">Continue with this quote</a>
             <div className={toast.on ? "toast on" : "toast"} role="status"><i>{T[2]}</i><div><span>{T[0]}</span><small>{T[1]}</small></div></div>
           </div>
         </div>
@@ -224,14 +255,23 @@ export default function Landing() {
 
       <section id="plans" style={{ background: "#fff", borderBlock: "1px solid var(--line)" }}><div className="wrap">
         <div className="sh"><h2>Simple plans. Pick the cover that fits.</h2><p>Every plan includes 24/7 support, instant digital proof of cover and no cancellation fees.</p></div>
-        <div className="pt" role="group" aria-label="Billing"><button aria-pressed={!yearly} onClick={() => setYearly(false)}>Monthly</button><button aria-pressed={yearly} onClick={() => setYearly(true)}>Yearly<em>Save 15%</em></button></div>
+        <div className="pt" role="group" aria-label="Billing"><button aria-pressed={!yearly} onClick={() => setYearly(false)}>Monthly</button><button aria-pressed={yearly} onClick={() => setYearly(true)}>Yearly{!plansLoading && !plansError && savePct > 0 && <em>Save {savePct}%</em>}</button></div>
+        {plansLoading && <p style={{ color: "var(--ink2)", marginBottom: 20 }}>Loading plans…</p>}
+        {plansError && <p style={{ color: "var(--ink2)", marginBottom: 20 }}>Could not load plans right now — showing sample pricing.</p>}
         <div className="pg3">
-          <div className="pl rv"><h3>Essential</h3><div className="a">$<span style={{ font: "inherit", opacity: 1 }}>{amt(29)}</span><span>/mo</span></div><p style={{ color: "var(--ink2)" }}>The basics, done right.</p>
-            <ul><li>Core protection</li><li>Online claims</li><li>Email and chat support</li></ul><Link href="/register" className="btn">Choose Essential</Link></div>
-          <div className="pl f rv"><span className="tag">Most popular</span><h3>Plus</h3><div className="a">$<span style={{ font: "inherit", opacity: 1 }}>{amt(59)}</span><span>/mo</span></div><p style={{ opacity: 0.85 }}>Our best balance of cover and price.</p>
-            <ul><li>Everything in Essential</li><li>Priority 24-hour claims</li><li>Replacement-value cover</li><li>Free roadside and home assistance</li></ul><Link href="/register" className="btn">Choose Plus</Link></div>
-          <div className="pl rv"><h3>Premier</h3><div className="a">$<span style={{ font: "inherit", opacity: 1 }}>{amt(99)}</span><span>/mo</span></div><p style={{ color: "var(--ink2)" }}>Maximum cover for the whole household.</p>
-            <ul><li>Everything in Plus</li><li>Dedicated claims manager</li><li>Worldwide cover</li><li>Zero deductible option</li></ul><Link href="/register" className="btn">Choose Premier</Link></div>
+          {cards.map((pl) => {
+            const price = cardPrice(pl);
+            return (
+              <div className={pl.highlighted ? "pl f rv" : "pl rv"} key={pl.id}>
+                {pl.highlighted && <span className="tag">Most popular</span>}
+                <h3>{pl.name}</h3>
+                <div className="a">${price != null && <span style={{ font: "inherit", opacity: 1 }}>{fmt(Math.round(price))}</span>}<span>/mo</span></div>
+                <p style={pl.highlighted ? { opacity: 0.85 } : { color: "var(--ink2)" }}>{pl.tagline}</p>
+                <ul>{pl.features.map((f) => <li key={f}>{f}</li>)}</ul>
+                <Link href={me ? "/portal/plans" : "/register"} className="btn">Choose {pl.name}</Link>
+              </div>
+            );
+          })}
         </div>
       </div></section>
 
