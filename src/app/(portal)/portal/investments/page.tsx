@@ -32,7 +32,7 @@ export default function Investments() {
         <div className="grid gap-4 md:grid-cols-2">
           {data!.map((p) => (
             <Card key={p.id}>
-              <div className="flex items-start justify-between"><div><h2 className="font-display text-xl font-bold">{p.plan.name}</h2><p className="text-sm text-ink2">{p.reference}</p></div><Badge status={p.status} /></div>
+              <div className="flex items-start justify-between"><div><h2 className="font-display text-xl font-bold">{p.plan?.name ?? "Investment plan"}</h2><p className="text-sm text-ink2">{p.reference}</p></div><Badge status={p.status} /></div>
               <dl className="mt-4 grid grid-cols-2 gap-y-2 text-sm">
                 <dt className="text-ink2">Principal</dt><dd>{usd(p.principal_usd)}</dd><dt className="text-ink2">Rate</dt><dd>{pct(p.annual_rate_bps)} a year</dd>
                 <dt className="text-ink2">Earned so far</dt><dd className="font-semibold text-ok">{usd(p.accrued_usd)}</dd><dt className="text-ink2">Term</dt><dd>{p.term_months} months</dd>
