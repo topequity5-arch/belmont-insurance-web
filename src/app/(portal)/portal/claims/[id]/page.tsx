@@ -1,6 +1,6 @@
 "use client";
 import { useParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge, Button, Card, ErrorNote, Field, Input, Select, Spinner, Textarea, useAction } from "@/components/ui";
 import { api, apiUpload, useQuery } from "@/lib/api";
 import { FileDownload } from "@/components/FileDownload";
@@ -33,6 +33,16 @@ export default function ClaimPage() {
   const [text, setText] = useState("");
   const [payout, setPayout] = useState({ method: "bank", a: "", b: "", c: "" });
   const file = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!c?.payout_details) return;
+    const details = c.payout_details;
+    setPayout({
+      method: c.payout_method ?? "bank",
+      a: details.bank_name ?? details.asset ?? "",
+      b: details.account_name ?? details.network ?? "",
+      c: details.account_number ?? details.address ?? "",
+    });
+  }, [c?.payout_details, c?.payout_method]);
   if (loading) return <Spinner />;
   if (!c) return <ErrorNote message={error} />;
   const closed = ["paid", "rejected"].includes(c.status);
@@ -83,7 +93,7 @@ export default function ClaimPage() {
         {c.status !== "paid" && c.status !== "rejected" && (
           <Card>
             <h2 className="mb-2 font-bold">Where should we pay you?</h2>
-            {c.payout_method && <p className="mb-2 text-sm text-ink2">Saved: {c.payout_method === "bank" ? "bank account" : "crypto wallet"}. Update below if needed.</p>}
+            {c.payout_method && <p className="mb-2 text-sm text-ink2">Saved {c.payout_method === "bank" ? "bank account" : "crypto wallet"} details are shown below. Update them if needed.</p>}
             <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); pay.run(async () => {
               const details = payout.method === "bank" ? { bank_name: payout.a, account_name: payout.b, account_number: payout.c } : { asset: payout.a, network: payout.b, address: payout.c };
               await api(`/claims/${id}/payout-details`, { method: "PUT", body: { payout_method: payout.method, payout_details: details } }); reload();
