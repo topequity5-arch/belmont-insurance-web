@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Badge, Button, Card, CopyButton, ErrorNote, Field, Input, PageHeader, Spinner, Textarea, useAction } from "@/components/ui";
-import { api, apiUpload, useQuery } from "@/lib/api";
+import { api, apiUpload, DOCUMENT_ACCEPT, useQuery } from "@/lib/api";
 import { usd } from "@/lib/format";
 import type { Invoice, PaymentMethod, Quote } from "@/lib/types";
 
@@ -84,7 +84,7 @@ export default function Pay() {
             <form className="grid gap-4 md:grid-cols-2" onSubmit={(e) => { e.preventDefault(); send(); }}>
               <Field label={method.kind === "crypto" ? "Transaction hash" : "Transfer reference"}><Input required minLength={6} value={f.ref} onChange={(e) => setF({ ...f, ref: e.target.value })} /></Field>
               {method.kind === "crypto" && <Field label={`Amount sent (${method.asset})`}><Input type="number" step="any" required value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></Field>}
-              <Field label="Receipt or screenshot (optional)"><input ref={fileRef} type="file" accept="image/*,application/pdf" onChange={(e) => setProof(e.target.files?.[0] ?? null)} className="text-sm" /></Field>
+              <Field label="Receipt or screenshot (optional)" hint="PDFs and images, up to 10 MB."><input ref={fileRef} type="file" accept={DOCUMENT_ACCEPT} onChange={(e) => setProof(e.target.files?.[0] ?? null)} className="text-sm" /></Field>
               <Field label="Note (optional)"><Textarea rows={2} value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></Field>
               <div className="space-y-2 md:col-span-2"><ErrorNote message={submit.error} /><Button disabled={submit.pending}>{submit.pending ? "Submitting…" : "I have paid"}</Button>
                 <p className="text-xs text-ink2">We verify payments manually. You will be notified when it is confirmed.</p></div>

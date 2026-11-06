@@ -5,7 +5,7 @@ import { BRAND } from "@/lib/brand";
 import { api, useQuery } from "@/lib/api";
 import { getAccessToken } from "@/lib/session";
 import type { Me, Plan } from "@/lib/types";
-import { FALLBACK_PLANS, KINDS, calcConfig, fallbackBase, fmt, num, priceAt, type Kind, type PlanCard } from "@/lib/quote";
+import { KINDS, calcConfig, fmt, num, priceAt, type Kind, type PlanCard } from "@/lib/quote";
 import "./landing.css";
 
 const TOASTS = [["Claim approved", "Auto · 2 hours ago", "🚗"], ["Policy activated", "Home · just now", "🏠"], ["Payout sent: $1,240", "Health · 18 min ago", "💸"], ["New quote saved", "Life · 5 min ago", "🛡️"]];
@@ -49,36 +49,44 @@ export default function Landing() {
   /* data from the API: public catalog + currently signed-in user (when a session exists) */
   const { data: plans, loading: plansLoading, error: plansError } = useQuery<Plan[]>("/catalog/plans");
   const [me, setMe] = useState<Me | null>(null);
+  const [hasSession, setHasSession] = useState<boolean | null>(null);
   useEffect(() => {
     let active = true;
     getAccessToken().then((token) => {
-      if (!token) return;
-      api<Me>("/me").then((m) => { if (active) setMe(m); }).catch(() => { /* session expired */ });
+      if (!active) return;
+      setHasSession(!!token);
+      if (token) {
+        api<Me>("/me").then((m) => { if (active) setMe(m); }).catch(() => { if (active) setMe(null); });
+      }
+    }).catch(() => {
+      if (active) setHasSession(null);
     });
     return () => { active = false; };
   }, []);
 
   /* quote widget */
   const [type, setType] = useState<Kind>("auto");
-  const [cov, setCov] = useState(() => calcConfig("auto", null).def);
-  const [fac, setFac] = useState(1);
+  const [cov, setCov] = useState(0);
+  const [deductible, setDeductible] = useState<number | null>(null);
   const [shown, setShown] = useState(0);
   const shownRef = useRef(0);
   const c = useMemo(() => calcConfig(type, plans), [type, plans]);
-  const p = c.max > c.min ? ((cov - c.min) / (c.max - c.min)) * 100 : 100;
+  const activeDeductible = c?.deds.some((d) => d.value === deductible) ? deductible : c?.deds[0]?.value ?? null;
+  const quotePoints = c?.pts.filter((point) => point.deductible === activeDeductible) ?? [];
+  const quoteMin = quotePoints[0]?.cov ?? c?.min ?? 0;
+  const quoteMax = quotePoints[quotePoints.length - 1]?.cov ?? c?.max ?? 0;
+  const quoteCov = Math.min(quoteMax, Math.max(quoteMin, cov));
+  const p = quoteMax > quoteMin ? ((quoteCov - quoteMin) / (quoteMax - quoteMin)) * 100 : 100;
   const sc = Math.round(35 + p * 0.6);
-  const base = c.pts.length ? priceAt(c.pts, cov) : fallbackBase(type, cov);
-  const price = Math.round(base * fac);
-  /* reset slider + deductible when the kind or the catalog data changes */
+  const price = c ? Math.round(priceAt(c.pts, quoteCov, activeDeductible)) : 0;
+  /* Reset the quote controls when the selected coverage or catalog data changes. */
   useEffect(() => {
-    setCov(c.def);
-    setFac(c.deds.reduce((best, d) => (Math.abs(d.factor - 1) < Math.abs(best.factor - 1) ? d : best)).factor);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, plans]);
+    setCov(c?.def ?? 0);
+    setDeductible(c?.deds[0]?.value ?? null);
+  }, [c]);
   useEffect(() => {
-    setCov((v) => Math.min(c.max, Math.max(c.min, v)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [c.min, c.max]);
+    if (c) setCov((v) => Math.min(quoteMax, Math.max(quoteMin, v)));
+  }, [c, quoteMin, quoteMax]);
   useEffect(() => {
     const from = shownRef.current, t0 = performance.now();
     let raf = 0;
@@ -142,8 +150,7 @@ export default function Landing() {
   /* billing toggle + plans section data */
   const [yearly, setYearly] = useState(false);
   const cards: PlanCard[] = useMemo(() => {
-    if (!plans?.length) return FALLBACK_PLANS;
-    return plans.map((pl) => ({
+    return (plans ?? []).map((pl) => ({
       id: pl.id, name: pl.name, tagline: pl.tagline, features: pl.features, highlighted: pl.highlighted,
       monthly: num(pl.price_monthly_usd), yearly: num(pl.price_yearly_usd),
     }));
@@ -173,10 +180,10 @@ export default function Landing() {
           <a href="#" className="logo" aria-label={`${BRAND} home`}><img src="/logo.jpeg" alt="Logo" width="30" height="30" />{BRAND}</a>
           <div className={menu ? "links o" : "links"} id="links">
             <a href="#coverage" onClick={closeMenu}>Coverage</a><a href="#claims" onClick={closeMenu}>Claims</a><a href="#plans" onClick={closeMenu}>Plans</a><a href="#reviews" onClick={closeMenu}>Reviews</a><a href="#faq" onClick={closeMenu}>FAQ</a>
-            {me
-              ? <Link href="/portal" onClick={closeMenu}>Hi, {me.full_name?.split(" ")[0] || me.email}</Link>
-              : <Link href="/login" onClick={closeMenu}>Sign in</Link>}
-            <a href="#quote" className="btn btn-p" style={{ padding: "10px 22px" }} onClick={closeMenu}>{me ? "My plans" : "Get a quote"}</a>
+            {hasSession === true
+              ? <Link href="/portal" onClick={closeMenu}>{me ? `Hi, ${me.full_name?.split(" ")[0] || me.email}` : "My account"}</Link>
+              : hasSession === false ? <Link href="/login" onClick={closeMenu}>Sign in</Link> : null}
+            <a href="#quote" className="btn btn-p" style={{ padding: "10px 22px" }} onClick={closeMenu}>{hasSession ? "My plans" : "Get a quote"}</a>
           </div>
           <button className="burger" id="burger" aria-label="Toggle menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -209,16 +216,18 @@ export default function Landing() {
                 <b>{sc}</b>
               </div>
               <div>
-                <div className="price" aria-live="polite">$<span style={{ font: "inherit", color: "inherit" }}>{shown}</span><span>/mo</span></div>
-                <p>{c.note}</p>
+                <div className="price" aria-live="polite">{c ? <>$<span style={{ font: "inherit", color: "inherit" }}>{shown}</span><span>/mo</span></> : "—"}</div>
+                <p>{c?.note ?? (plansLoading ? "Loading plan prices…" : plansError ? "Quote pricing is temporarily unavailable." : `No ${type} plans are currently available.`)}</p>
               </div>
             </div>
-            <label className="sl" htmlFor="cov"><span>{c.label}</span><output>${fmt(cov)}</output></label>
-            <input type="range" id="cov" min={c.min} max={c.max} step={c.step} value={cov} onChange={(e) => setCov(+e.target.value)} style={{ ["--p" as string]: p + "%" } as React.CSSProperties} />
-            <div className="ded" role="group" aria-label="Deductible"><span>Deductible</span>
-              {c.deds.map((d) => <button key={d.label} aria-pressed={fac === d.factor} onClick={() => setFac(d.factor)}>{d.label}</button>)}
-            </div>
-            <a href={me ? "/portal/plans" : "#plans"} className="btn btn-p">Continue with this quote</a>
+            {c && <>
+              <label className="sl" htmlFor="cov"><span>{c.label}</span><output>${fmt(quoteCov)}</output></label>
+              <input type="range" id="cov" min={quoteMin} max={quoteMax} step={quoteMax > quoteMin ? c.step : 1} value={quoteCov} onChange={(e) => setCov(+e.target.value)} style={{ ["--p" as string]: p + "%" } as React.CSSProperties} />
+              {c.deds.length > 1 && <div className="ded" role="group" aria-label="Deductible"><span>Deductible</span>
+                {c.deds.map((d) => <button key={d.label} aria-pressed={activeDeductible === d.value} onClick={() => setDeductible(d.value)}>{d.label}</button>)}
+              </div>}
+            </>}
+            {c && <a href={hasSession ? "/portal/plans" : "#plans"} className="btn btn-p">Continue with this quote</a>}
             <div className={toast.on ? "toast on" : "toast"} role="status"><i>{T[2]}</i><div><span>{T[0]}</span><small>{T[1]}</small></div></div>
           </div>
         </div>
@@ -256,7 +265,8 @@ export default function Landing() {
         <div className="sh"><h2>Simple plans. Pick the cover that fits.</h2><p>Every plan includes 24/7 support, instant digital proof of cover and no cancellation fees.</p></div>
         <div className="pt" role="group" aria-label="Billing"><button aria-pressed={!yearly} onClick={() => setYearly(false)}>Monthly</button><button aria-pressed={yearly} onClick={() => setYearly(true)}>Yearly{!plansLoading && !plansError && savePct > 0 && <em>Save {savePct}%</em>}</button></div>
         {plansLoading && <p style={{ color: "var(--ink2)", marginBottom: 20 }}>Loading plans…</p>}
-        {plansError && <p style={{ color: "var(--ink2)", marginBottom: 20 }}>Could not load plans right now — showing sample pricing.</p>}
+        {plansError && <p style={{ color: "var(--ink2)", marginBottom: 20 }}>Could not load plans right now. Please try again later.</p>}
+        {!plansLoading && !plansError && !cards.length && <p style={{ color: "var(--ink2)", marginBottom: 20 }}>There are no active plans available right now.</p>}
         <div className="pg3">
           {cards.map((pl) => {
             const price = cardPrice(pl);
@@ -267,7 +277,7 @@ export default function Landing() {
                 <div className="a">${price != null && <span style={{ font: "inherit", opacity: 1 }}>{fmt(Math.round(price))}</span>}<span>/mo</span></div>
                 <p style={pl.highlighted ? { opacity: 0.85 } : { color: "var(--ink2)" }}>{pl.tagline}</p>
                 <ul>{pl.features.map((f) => <li key={f}>{f}</li>)}</ul>
-                <Link href={me ? "/portal/plans" : "/register"} className="btn">Choose {pl.name}</Link>
+                <Link href={hasSession ? "/portal/plans" : "/register"} className="btn">Choose {pl.name}</Link>
               </div>
             );
           })}

@@ -7,6 +7,8 @@ export class ApiError extends Error {
   constructor(public status: number, public code: string, message: string) { super(message); }
 }
 
+export const DOCUMENT_ACCEPT = "application/pdf,image/*";
+
 async function request(path: string, method: string, body?: BodyInit, contentType?: string) {
   const anonymous = ["/auth/login", "/auth/register", "/auth/verify"].some((route) => path.startsWith(route));
   const token = anonymous ? null : await getAccessToken();
@@ -47,19 +49,27 @@ export function useQuery<T>(path: string | null) {
 }
 
 export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const contentType = file.type.split(";", 1)[0].trim().toLowerCase();
+  if (contentType !== "application/pdf" && !contentType.startsWith("image/")) {
+    throw new Error("Upload a PDF or image.");
+  }
   const query = `?file_name=${encodeURIComponent(file.name)}`;
-  const res = await request(`${path}${query}`, "POST", file, file.type || "application/octet-stream");
+  const res = await request(`${path}${query}`, "POST", file, contentType);
   if (!res.ok) throw await parseError(res);
   return await res.json() as T;
 }
 
 export async function apiDownload(path: string, fileName: string) {
-  const res = await request(path, "GET");
-  if (!res.ok) throw await parseError(res);
-  const url = URL.createObjectURL(await res.blob());
+  const url = URL.createObjectURL(await apiBlob(path));
   const link = document.createElement("a");
   link.href = url;
   link.download = fileName;
   link.click();
   window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export async function apiBlob(path: string): Promise<Blob> {
+  const res = await request(path, "GET");
+  if (!res.ok) throw await parseError(res);
+  return res.blob();
 }

@@ -2,7 +2,7 @@
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Badge, Button, Card, ErrorNote, Field, Input, Select, Spinner, Textarea, useAction } from "@/components/ui";
-import { api, apiUpload, useQuery } from "@/lib/api";
+import { api, apiUpload, DOCUMENT_ACCEPT, useQuery } from "@/lib/api";
 import { FileDownload } from "@/components/FileDownload";
 import { dateTime, label, usd } from "@/lib/format";
 import type { ClaimDetail } from "@/lib/types";
@@ -86,9 +86,9 @@ export default function ClaimPage() {
           <h2 className="mb-2 font-bold">Documents</h2>
           <ul className="space-y-1 text-sm">{c.documents.map((d) => <li key={d.id}><FileDownload path={`/claims/${id}/documents/${d.id}/download`} name={d.file_name} /></li>)}{c.documents.length === 0 && <li className="text-ink2">No documents yet.</li>}</ul>
           {!closed && <>
-            <input ref={file} type="file" hidden accept="image/*,application/pdf,video/mp4" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+            <input ref={file} type="file" hidden accept={DOCUMENT_ACCEPT} onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
             <Button variant="soft" className="mt-3" disabled={up.pending} onClick={() => file.current?.click()}>{up.pending ? "Uploading…" : "Add a file"}</Button><ErrorNote message={up.error} />
-            <p className="mt-2 text-xs text-ink2">JPG, PNG, PDF or MP4, up to 10 MB.</p></>}
+            <p className="mt-2 text-xs text-ink2">PDFs and images, up to 10 MB.</p></>}
         </Card>
         {c.status !== "paid" && c.status !== "rejected" && (
           <Card>

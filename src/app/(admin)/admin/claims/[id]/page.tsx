@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Badge, Button, Card, ErrorNote, Field, Input, Spinner, Textarea, useAction } from "@/components/ui";
 import { api, useQuery } from "@/lib/api";
 import { FileDownload } from "@/components/FileDownload";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { dateTime, label, usd } from "@/lib/format";
 import type { ClaimDetail } from "@/lib/types";
 
@@ -36,7 +37,10 @@ function AdminClaimContent({ id }: { id: string }) {
         </Card>
       </div>
       <div className="space-y-6">
-        <Card><h2 className="mb-3 font-bold">Documents</h2><ul className="space-y-1 text-sm">{c.documents.map((d) => <li key={d.id}><FileDownload path={`/admin/claims/${id}/documents/${d.id}/download`} name={d.file_name} /></li>)}{c.documents.length === 0 && <li className="text-ink2">None uploaded.</li>}</ul></Card>
+        <Card><h2 className="mb-3 font-bold">Documents</h2><ul className="space-y-2 text-sm">{c.documents.map((d) => {
+          const path = `/admin/claims/${id}/documents/${d.id}/download`;
+          return <li key={d.id} className="flex flex-wrap items-center gap-3"><span>{d.file_name}</span><DocumentPreview path={path} name={d.file_name} contentType={d.content_type} /><FileDownload path={path} name="Download" /></li>;
+        })}{c.documents.length === 0 && <li className="text-ink2">None uploaded.</li>}</ul></Card>
         {(next[c.status] ?? []).length > 0 && (
           <Card><h2 className="mb-3 font-bold">Decision</h2>
             <Field label="Message to the client" hint="Required to reject or request information."><Textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} /></Field>

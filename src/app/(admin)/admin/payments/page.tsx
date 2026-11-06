@@ -4,6 +4,7 @@ import { Badge, Button, Card, ErrorNote, Field, Input, PageHeader, Spinner, Tabs
 import { RequirePermission } from "@/components/RequirePermission";
 import { api, useQuery } from "@/lib/api";
 import { FileDownload } from "@/components/FileDownload";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { dateTime, usd } from "@/lib/format";
 import type { Page, Payment } from "@/lib/types";
 
@@ -20,7 +21,7 @@ function Review({ p, onDone }: { p: Payment; onDone: () => void }) {
         <dt className="text-ink2">Method</dt><dd>{p.method.label}{p.network && ` (${p.network})`}</dd>
         <dt className="text-ink2">Reference</dt><dd className="break-all font-mono text-xs">{p.tx_reference}</dd>
         {p.amount_asset && <><dt className="text-ink2">Client says sent</dt><dd>{p.amount_asset} {p.asset}</dd></>}
-        <dt className="text-ink2">Proof</dt><dd>{p.proof_path ? <FileDownload path={`/admin/payments/${p.id}/proof`} name="View upload" /> : "None"}</dd>
+        <dt className="text-ink2">Proof</dt><dd>{p.proof_path ? <span className="flex flex-wrap gap-3"><DocumentPreview path={`/admin/payments/${p.id}/proof`} name="Payment proof" /><FileDownload path={`/admin/payments/${p.id}/proof`} name="Download" /></span> : "None"}</dd>
         {p.review_note && <><dt className="text-ink2">Review note</dt><dd>{p.review_note}</dd></>}
       </dl>
       {p.status === "submitted" && (
