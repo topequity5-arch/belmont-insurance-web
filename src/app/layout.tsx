@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { BRAND } from "@/lib/brand";
 
-export const metadata: Metadata = { title: { default: `${BRAND} - Insurance and investment plans`, template: `%s | ${BRAND}` }, description: "Buy cover, manage claims and grow your savings in one place." };
+export const metadata: Metadata = { title: { default: `${BRAND} - Insurance plans`, template: `%s | ${BRAND}` }, description: "Buy cover, manage claims and pay for your policy in one place." };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

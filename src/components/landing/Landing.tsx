@@ -142,9 +142,8 @@ export default function Landing() {
   /* billing toggle + plans section data */
   const [yearly, setYearly] = useState(false);
   const cards: PlanCard[] = useMemo(() => {
-    const ins = (plans ?? []).filter((pl) => pl.product.category !== "investment");
-    if (!ins.length) return FALLBACK_PLANS;
-    return ins.map((pl) => ({
+    if (!plans?.length) return FALLBACK_PLANS;
+    return plans.map((pl) => ({
       id: pl.id, name: pl.name, tagline: pl.tagline, features: pl.features, highlighted: pl.highlighted,
       monthly: num(pl.price_monthly_usd), yearly: num(pl.price_yearly_usd),
     }));

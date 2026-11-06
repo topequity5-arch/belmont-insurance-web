@@ -7,7 +7,6 @@ const NAV: NavItem[] = [
   { href: "/portal/policies", label: "My policies" },
   { href: "/portal/claims", label: "Claims" },
   { href: "/portal/billing", label: "Billing" },
-  { href: "/portal/investments", label: "Investments" },
   { href: "/portal/settings", label: "Account" },
 ];
 

@@ -27,11 +27,10 @@ function DashboardContent() {
           <Link key={q.t} href={q.href}><Card className={`transition-colors hover:border-brand ${q.n > 0 ? "border-warn/50" : ""}`}><p className="font-display text-5xl font-extrabold">{q.n}</p><p className="mt-1 text-sm text-ink2">{q.t}</p></Card></Link>
         ))}
       </div>
-      <div className="mt-6 grid gap-4 md:grid-cols-4">
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
         <Card><p className="text-sm text-ink2">Clients</p><p className="font-display text-3xl font-extrabold">{s.clients}</p></Card>
         <Card><p className="text-sm text-ink2">Active policies</p><p className="font-display text-3xl font-extrabold">{s.active_policies}</p></Card>
         <Card><p className="text-sm text-ink2">Confirmed revenue</p><p className="font-display text-3xl font-extrabold">{usd(s.revenue_confirmed_usd)}</p></Card>
-        <Card><p className="text-sm text-ink2">Investment principal</p><p className="font-display text-3xl font-extrabold">{usd(s.investment_principal_usd)}</p></Card>
       </div>
     </>
   );

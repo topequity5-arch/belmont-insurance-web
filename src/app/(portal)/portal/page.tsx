@@ -3,18 +3,16 @@ import Link from "next/link";
 import { Badge, Card, Empty, PageHeader, Spinner } from "@/components/ui";
 import { useQuery } from "@/lib/api";
 import { date, usd } from "@/lib/format";
-import type { Claim, Invoice, Me, Position, Subscription } from "@/lib/types";
+import type { Claim, Invoice, Me, Subscription } from "@/lib/types";
 
 export default function Overview() {
   const me = useQuery<Me>("/me");
   const subs = useQuery<Subscription[]>("/subscriptions");
   const inv = useQuery<Invoice[]>("/invoices?status=open");
   const claims = useQuery<Claim[]>("/claims");
-  const pos = useQuery<Position[]>("/investments");
   if (subs.loading || inv.loading) return <Spinner />;
   const active = (subs.data ?? []).filter((s) => s.status === "active");
   const open = inv.data ?? [];
-  const invested = (pos.data ?? []).filter((p) => ["active", "matured"].includes(p.status));
   return (
     <>
       <PageHeader title={`Welcome${me.data?.full_name ? `, ${me.data.full_name.split(" ")[0]}` : ""}`} sub="Your cover, claims and savings at a glance." />
@@ -34,7 +32,7 @@ export default function Overview() {
       <div className="grid gap-5 md:grid-cols-3">
         <Card><p className="text-sm text-ink2">Active policies</p><p className="font-display text-4xl font-extrabold">{active.length}</p><Link className="text-sm font-semibold text-brand-d" href="/portal/policies">View policies</Link></Card>
         <Card><p className="text-sm text-ink2">Open claims</p><p className="font-display text-4xl font-extrabold">{(claims.data ?? []).filter((c) => !["paid", "rejected"].includes(c.status)).length}</p><Link className="text-sm font-semibold text-brand-d" href="/portal/claims">View claims</Link></Card>
-        <Card><p className="text-sm text-ink2">Invested</p><p className="font-display text-4xl font-extrabold">{usd(invested.reduce((a, p) => a + Number(p.principal_usd) + Number(p.accrued_usd), 0))}</p><Link className="text-sm font-semibold text-brand-d" href="/portal/investments">View investments</Link></Card>
+
       </div>
       <h2 className="mb-3 mt-10 text-2xl font-extrabold">Your cover</h2>
       {active.length === 0 ? <Empty title="No active cover yet"><Link className="font-semibold text-brand-d" href="/portal/plans">Browse plans</Link> to get started.</Empty> : (

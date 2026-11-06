@@ -6,7 +6,6 @@ const NAV: NavItem[] = [
   { href: "/admin/claims", label: "Claims", perm: "claims:read" },
   { href: "/admin/payments", label: "Payments", perm: "payments:read" },
   { href: "/admin/subscriptions", label: "Policies and invoices", perm: "subscriptions:read" },
-  { href: "/admin/investments", label: "Investments", perm: "investments:read" },
   { href: "/admin/catalog", label: "Products and plans", perm: "catalog:read" },
   { href: "/admin/payment-methods", label: "Payment accounts", perm: "payments:read" },
   { href: "/admin/users", label: "Users", perm: "users:read" },
