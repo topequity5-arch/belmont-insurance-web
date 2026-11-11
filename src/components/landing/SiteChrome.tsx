@@ -73,7 +73,7 @@ export function SiteChrome({ children }: { children: React.ReactNode }) {
       <footer><div className="wrap">
         <div className="fg">
           <div><Link href="/" className="logo" style={{ marginBottom: 10 }}><img src="/logo.jpeg" alt="Logo" width="26" height="26" />{BRAND}</Link><p>Modern insurance, built around people.</p></div>
-          <div><h4>Cover</h4><a href={anchor("#coverage")}>Auto</a><a href={anchor("#coverage")}>Home</a><a href={anchor("#coverage")}>Health</a><a href={anchor("#coverage")}>Life</a></div>
+          <div><h4>Cover</h4><a href={anchor("#coverage")}>Auto</a><a href={anchor("#coverage")}>Home</a><a href={anchor("#coverage")}>Health</a><a href={anchor("#coverage")}>Life</a><a href="#coverage">Investment</a></div>
           <div><h4>Company</h4><Link href="/about">About</Link><Link href="/contact">Contact</Link><a href={anchor("#reviews")}>Reviews</a><a href="#">Press</a></div>
           <div><h4>Help</h4><a href={anchor("#faq")}>FAQ</a><a href={anchor("#claims")}>Make a claim</a><Link href="/contact">Contact</Link><a href="#">Privacy</a></div>
         </div>

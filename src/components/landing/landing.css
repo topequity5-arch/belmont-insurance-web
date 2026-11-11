@@ -209,5 +209,18 @@ html:has(.lp){scroll-behavior:smooth;scroll-padding-top:80px}
 .lp .fld textarea{resize:vertical;min-height:140px}
 .lp .note-ok{background:#dff6ec;color:#0e7a52;border-radius:12px;padding:12px 16px;font-weight:600;font-size:.92rem;margin-bottom:18px}
 .lp .note-err{background:#fde8e7;color:var(--bad);border-radius:12px;padding:12px 16px;font-weight:600;font-size:.92rem;margin-bottom:18px}
-@media(max-width:960px){.lp .cgrid{grid-template-columns:1fr}}
-@media(max-width:640px){.lp .frow{grid-template-columns:1fr}}
+@media(max-width:960px){.lp .cgrid{grid-template-columns:1fr}.lp .cgrid form{order:-1}}
+@media(max-width:640px){.lp .frow{grid-template-columns:1fr}.lp .fcard{padding:24px 20px}}
+
+/* --- Mobile refinements shared by the marketing pages (landing, about, contact) --- */
+@media(max-width:960px){
+  .lp .links{max-height:calc(100vh - 68px);overflow-y:auto}
+}
+@media(max-width:520px){
+  .lp .hero{padding:36px 0 60px}
+  .lp h1{font-size:2.3rem}
+  .lp .lead{font-size:1.05rem}
+  .lp .pill{font-size:.82rem}
+  .lp .fc{padding:48px 24px;border-radius:24px}
+  .lp .fld input,.lp .fld textarea{font-size:16px} /* >=16px prevents iOS focus zoom */
+}
