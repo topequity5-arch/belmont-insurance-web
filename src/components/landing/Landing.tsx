@@ -184,6 +184,8 @@ export default function Landing() {
               ? <Link href="/portal" onClick={closeMenu}>{me ? `Hi, ${me.full_name?.split(" ")[0] || me.email}` : "My account"}</Link>
               : hasSession === false ? <Link href="/login" onClick={closeMenu}>Sign in</Link> : null}
             <a href="#quote" className="btn btn-p" style={{ padding: "10px 22px" }} onClick={closeMenu}>{hasSession ? "My plans" : "Get a quote"}</a>
+            <Link href="/about" onClick={closeMenu}>About</Link>
+            <Link href="/contact" onClick={closeMenu}>Contact</Link>
           </div>
           <button className="burger" id="burger" aria-label="Toggle menu" aria-expanded={menu} onClick={() => setMenu(!menu)}>
             <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 7h16M4 12h16M4 17h16" /></svg>
@@ -314,8 +316,8 @@ export default function Landing() {
         <div className="fg">
           <div><a href="#" className="logo" style={{ marginBottom: 10 }}><img src="/logo.jpeg" alt="Logo" width="26" height="26" />{BRAND}</a><p>Modern insurance, built around people.</p></div>
           <div><h4>Cover</h4><a href="#coverage">Auto</a><a href="#coverage">Home</a><a href="#coverage">Health</a><a href="#coverage">Life</a></div>
-          <div><h4>Company</h4><a href="#">About</a><a href="#">Careers</a><a href="#reviews">Reviews</a><a href="#">Press</a></div>
-          <div><h4>Help</h4><a href="#faq">FAQ</a><a href="#claims">Make a claim</a><a href="#">Contact</a><a href="#">Privacy</a></div>
+          <div><h4>Company</h4><Link href="/about">About</Link><Link href="/contact">Contact</Link><a href="#reviews">Reviews</a><a href="#">Press</a></div>
+          <div><h4>Help</h4><a href="#faq">FAQ</a><a href="#claims">Make a claim</a><Link href="/contact">Contact</Link><a href="#">Privacy</a></div>
         </div>
         <p className="fine">© {new Date().getFullYear()} {BRAND}. Quotes shown are estimates and not an offer of cover.</p>
       </div></footer>

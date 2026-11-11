@@ -10,7 +10,7 @@ export class ApiError extends Error {
 export const DOCUMENT_ACCEPT = "application/pdf,image/*";
 
 async function request(path: string, method: string, body?: BodyInit, contentType?: string) {
-  const anonymous = ["/auth/login", "/auth/register", "/auth/verify"].some((route) => path.startsWith(route));
+  const anonymous = ["/auth/login", "/auth/register", "/auth/verify", "/contact"].some((route) => path.startsWith(route));
   const token = anonymous ? null : await getAccessToken();
   const headers = new Headers();
   if (contentType) headers.set("Content-Type", contentType);
